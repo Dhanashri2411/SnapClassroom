@@ -2,32 +2,38 @@ import streamlit as st
 import supabase
 from src.database.config import supabase
 from src.database.db import enroll_student_to_subject, unenroll_student_to_subject
+import time
 @st.dialog("Enroll Subjects")
-def enroll_dialog():
-    st.write("Enter the Subject code Given by your Teacher to Enroll in the Subject")
-    join_code=st.text_input("Subject Code",placeholder="E.g. CS101",key="enroll_subject_code")
-
-    if st.button("Enroll Now",type="primary",width="stretch"):
-        if join_code:
-            res=supabase.table("subjects").select("subject_id,name,subject_code").eq("subject_code",join_code).execute()
-            if res.data:
-                subject=res.data[0]
-                student_id=st.session_state.student_data["student_id"]
-                check=supabase.table("subject_students").select("*").eq("subject_id",subject["subject_id"]).eq("student_id",student_id).execute()
-                if check.data:
-                    st.warning("You are already enrolled in this subject")
-                else:
-                    enroll_student_to_subject(student_id,subject["subject_id"])
-                    st.success(f"You have been enrolled in {subject['name']} successfully!")
-                    import time
-                    time.sleep(1)
-                    st.rerun()
-                    
-            else:
-                st.warning("Invalid Subject Code")
-                return
-            st.session_state.enroll_subject_code=join_code
-            st.toast("Enrolled Succesfully!")
+def enroll_dialog(subject_code):
+    student_id = st.session_state.student_data['student_id']
+    res = supabase.table('subjects').select('subject_id, name').eq('subject_code', subject_code).execute()
+    if not res.data:
+        st.error('Subject Code not found!')
+        if st.button('Close'):
+            st.query_params.clear()
             st.rerun()
-        else:
-            st.warning("Please Enter the Subject Code")
+        return
+    subject = res.data[0]
+
+    check = supabase.table('subject_students').select('*').eq('subject_id', subject['subject_id']).eq('student_id', student_id).execute()
+    if check.data:
+        st.info('Youre already enrolled!')
+        if st.button('Got it!'):
+            st.query_params.clear()
+            st.rerun()
+        return
+    st.markdown(f'Would you like to enroll in **{subject['name']}**?')
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button('No thanks'):
+            st.query_params.clear()
+            st.rerun()
+    with col2:
+        if st.button('Yes enroll now!', type='primary', width='stretch'):
+            enroll_student_to_subject(student_id, subject['subject_id'])
+            st.success('Joined succesfully!')
+            st.query_params.clear()
+            time.sleep(2)
+            st.rerun()
