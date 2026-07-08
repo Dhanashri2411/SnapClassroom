@@ -36,12 +36,12 @@ def voice_attendance_dialogue(selected_subject_id):
             for node in enroll_students:
                 student = node['students']
                 scores=detected_sore.get(student["student_id"],0.0)
-                is_present= len(scores) > 0
+                is_present=bool(scores>0) 
 
                 results.append({
                     "Name": student['name'],
                     "ID": student['student_id'],
-                    "Source": scores if is_present else "-",
+                    "Score": scores if is_present else "-",
                     "Status": "✅ Present" if is_present else "❌ Absent"
                 })
 
